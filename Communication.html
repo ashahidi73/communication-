@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض بطاقات التواصل الداخلي</title>
+    <!-- تحميل خط Cairo من Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- تحميل Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* تعريف اللون الأصفر للخلفية وتوحيد الخط إلى Cairo */
+        body {
+            background-color: #ffcc4e; /* اللون المطلوب: ffcc4e */
+            /* تطبيق خط Cairo على الجسم بالكامل */
+            font-family: 'Cairo', sans-serif; 
+            transition: background-color 0.3s ease;
+        }
+
+        /* توحيد الخطوط لجميع النصوص التي قد تتأثر بتعيينات Tailwind الافتراضية */
+        h1, h2, p, button {
+            font-family: inherit; 
+        }
+
+        /* تخصيص نصف قطر الزاوية لـ 15 بكسل */
+        .rounded-15 {
+            border-radius: 15px;
+        }
+        
+        /* ************************************************* */
+        /* التعديل الرئيسي: الانتقال إلى التلاشي المعتمد على Opacity و Pointer-Events */
+        /* ************************************************* */
+        .card-slide {
+            /* البطاقات متراكبة ومخفية وغير قابلة للنقر بشكل افتراضي */
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 100%; /* تأكيد عرض البطاقة */
+            max-width: 400px; /* لتوحيد العرض مع حاوية الشرائح */
+            transition: opacity 0.5s ease, transform 0.3s ease; 
+            background-color: transparent; 
+            /* لضمان أن البطاقات تأخذ مساحة معينة داخل الحاوية */
+            min-height: 400px; 
+            display: flex; /* يبقى display:flex لترتيب المحتوى الداخلي */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* إظهار البطاقة النشطة */
+        .card-slide.active {
+            opacity: 1; /* تصبح مرئية بتأثير التلاشي */
+            pointer-events: auto; /* تسمح بالتفاعل والنقر */
+            z-index: 10; /* ضمان ظهورها فوق البطاقات الأخرى */
+        }
+        /* ************************************************* */
+
+
+        /* تصميم زر السلايدر (أبيض على أسود عند التحويم) */
+        .slider-button {
+            transition: background-color 0.2s, transform 0.1s, color 0.2s;
+            /* اللون الافتراضي للزر هو أسود مع نص أبيض */
+            background-color: black; 
+            color: white;
+            font-family: inherit; 
+        }
+        .slider-button:hover {
+            background-color: white; /* التحويل إلى أبيض عند التحويم */
+            color: black;
+        }
+        .slider-button:active {
+            transform: scale(0.95);
+        }
+
+        /* تأثير التكبير الخفيف على البطاقة عند التحويم/اللمس */
+        .card-scale-effect:hover > .card-content {
+            transform: scale(1.03);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.15);
+        }
+        .card-content {
+            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+        }
+
+        /* تنسيق العنوان الترحيبي */
+        .intro-title {
+            font-size: 40px; 
+            line-height: 1.2;
+            white-space: normal;
+        }
+        @media (min-width: 768px) { 
+            .intro-title {
+                font-size: 50px; 
+            }
+        }
+
+        /* ضبط مرونة ارتفاع حاوية البطاقة */
+        #cards-container {
+            /* إزالة الـ min-height والسماح للـ JS بتحديد الارتفاع بدقة بناءً على البطاقة النشطة */
+            height: auto;
+            position: relative; /* ضروري لعمل position: absolute للبطاقات */
+            /* الحد الأدنى للارتفاع لضمان عدم اهتزاز الصفحة أثناء التحولات */
+            min-height: 450px; 
+        }
+
+        /* إخفاء عناصر التحكم في الشرائح غير اللازمة */
+        .controls-hidden {
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease;
+        }
+        .controls-visible {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-yellow': '#ffcc4e',
+                    }
+                }
+            }
+        }
+
+        // تحديد المسار الصحيح للصورة المرفقة
+        const logoPath = "logo_amall.png";
+
+        // دالة يتم استدعاؤها بعد تحميل DOM لتغيير مسار الشعار
+        document.addEventListener('DOMContentLoaded', () => {
+             const logoElement = document.getElementById('company-logo');
+             if (logoElement) {
+                 logoElement.src = logoPath;
+                 logoElement.onerror = function() {
+                    this.onerror=null; 
+                    this.src='https://placehold.co/48x48/000000/FFFFFF?text=Logo';
+                 };
+             }
+        });
+    </script>
+</head>
+<body class="p-4 md:p-8 min-h-screen flex flex-col items-center justify-center">
+
+    <!-- الشعار في الزاوية اليسرى العليا -->
+    <div class="fixed top-4 left-4 z-50">
+        <img id="company-logo" src="logo_amall.png" alt="شعار الشركة" class="w-12 h-12 rounded-lg shadow-lg">
+    </div>
+
+    <!-- حاوية الشرائح (الـ Slider) -->
+    <div class="relative w-full max-w-xl mx-auto flex flex-col items-center">
+        
+        <!-- عرض رقم البطاقة الحالية (يختفي في المقدمة والخاتمة) -->
+        <div id="card-index-display" class="text-xl font-bold text-black mb-4 controls-hidden"></div>
+
+        <!-- حاوية البطاقة الواحدة - تم تعديل الارتفاع في CSS ليكون مرناً -->
+        <div id="cards-container" class="w-full flex items-start justify-center relative">
+            <!-- سيتم توليد البطاقات هنا بواسطة JavaScript -->
+        </div>
+
+        <!-- أزرار التحكم في الشرائح (تختفي في المقدمة والخاتمة) -->
+        <div id="slider-controls" class="flex justify-between w-full max-w-sm mt-8 gap-4 controls-hidden">
+            <button id="prev-btn" class="slider-button px-6 py-3 rounded-15 text-lg font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex-1">
+                &rarr; السابق
+            </button>
+            <button id="next-btn" class="slider-button px-6 py-3 rounded-15 text-lg font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex-1">
+                التالي &larr;
+            </button>
+        </div>
+        
+        <!-- زر البدء (يظهر فقط في شريحة المقدمة) -->
+        <button id="start-btn" class="slider-button px-8 py-4 rounded-15 text-xl font-bold shadow-lg mt-8 controls-visible">
+            لقراءة البطاقات
+        </button>
+    </div>
+
+    <script>
+        // دمج الشريحة الافتتاحية والختامية مع البيانات الرئيسية
+        const introductionCard = {
+            id: 'intro',
+            title: "بطاقات التواصل الداخلي التفاعلية",
+            isSpecial: true,
+            body: "مجموعة من 10 بطاقات إرشادية حول أهمية وأفضل ممارسات التواصل الداخلي في بيئة العمل لتعزيز الإنتاجية والولاء.",
+            buttonText: 'لقراءة البطاقات'
+        };
+        const thankYouCard = {
+            id: 'thanks',
+            title: "شكراً لوقتك في القراءة",
+            isSpecial: true,
+            body: "نتمنى أن تكون هذه البطاقات مصدر إلهام لتعزيز التواصل في شركتكم.",
+            footer: 'فريق التواصل الداخلي'
+        };
+
+        const communicationCards = [
+            { title: "1. أهمية التواصل الداخلي", body: "يعزز التواصل الداخلي الفعال الشفافية والثقة بين الموظفين والإدارة، مما يقوي ثقافة الشركة ويزيد من الانتماء والإنتاجية." },
+            { title: "2. القنوات المتعددة", body: "استخدم مزيجًا من القنوات مثل البريد الإلكتروني، اجتماعات الفيديو، ولوحات الإعلانات الرقمية لضمان وصول الرسائل للجميع بفعالية." },
+            { title: "3. الاستماع النشط", body: "لا يقتصر التواصل على الإرسال فقط؛ استمع بفعالية لآراء واقتراحات الموظفين لتشجيع الحوار المفتوح وتحديد المشاكل مبكراً." },
+            { title: "4. وضوح الرسائل", body: "يجب أن تكون الرسائل واضحة ومباشرة وخالية من الغموض، مع تحديد الهدف والإجراء المطلوب من الموظفين بشكل دقيق." },
+            { title: "5. التوقيت المناسب", body: "اختر التوقيت الأمثل لإرسال الرسائل الهامة. التأخير قد يؤدي إلى انتشار الشائعات أو فقدان أهمية المعلومات." },
+            { title: "6. التواصل ثنائي الاتجاه", body: "شجع على التغذية الراجعة والأسئلة. التواصل الفعال هو عملية تبادلية تضمن فهم الرسائل وتأييدها." },
+            { title: "7. قصص النجاح", body: "شارك إنجازات ونجاحات الموظفين والفرق داخليًا لرفع الروح المعنوية، تعزيز الدافع، والاحتفاء بالتميز." },
+            { title: "8. القيادة المتواصلة", body: "يجب أن تكون القيادة نموذجًا للتواصل المفتوح والصادق، من خلال الاجتماعات الدورية والخطابات المباشرة والشفافة." },
+            { title: "9. قياس الأثر", body: "قم بقياس فعالية استراتيجية التواصل الداخلي بانتظام من خلال الاستطلاعات ومجموعات التركيز لتحديد مجالات التحسين المستمر." },
+            { title: "10. التخصيص والملائمة", body: "حاول تخصيص الرسائل قدر الإمكان لتكون ملائمة لاهتمامات واحتياجات كل قسم أو مجموعة مستهدفة لزيادة التأثير." }
+        ];
+
+        const cardsData = [introductionCard, ...communicationCards, thankYouCard];
+
+        const container = document.getElementById('cards-container');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const indexDisplay = document.getElementById('card-index-display');
+        const startBtn = document.getElementById('start-btn');
+        const sliderControls = document.getElementById('slider-controls');
+        
+        let currentIndex = 0;
+
+        // دالة لإنشاء بطاقة HTML
+        const createCardElement = (card, index) => {
+            const isSpecial = card.isSpecial;
+            
+            const cardElement = document.createElement('div');
+            // تم الاعتماد على CSS لتعيين opacity و pointer-events
+            cardElement.className = `card-slide w-full mx-auto transition-opacity duration-500 ease-in-out flex flex-col items-center justify-center text-center ${index === 0 ? 'active' : ''}`;
+            
+            // حاوية المحتوى الرئيسية التي تحمل اللون والتأثير
+            const contentContainer = document.createElement('div');
+            contentContainer.className = `card-content w-full h-full rounded-15 shadow-2xl p-6 flex flex-col items-center justify-center transition-transform duration-300 ${!isSpecial ? 'card-scale-effect' : ''}`;
+
+            if (isSpecial) {
+                // --- تنسيق الشريحة الخاصة (المقدمة/الشكر) ---
+                
+                contentContainer.classList.add('bg-transparent', 'p-0', 'justify-start', 'mt-4');
+                contentContainer.style.maxWidth = '400px';
+
+                // 1. عنوان البطاقات (مستطيل أسود)
+                const mainTitleBox = document.createElement('div');
+                mainTitleBox.className = 'bg-black rounded-15 px-6 py-4 w-full text-center shadow-xl mb-6';
+                
+                const mainTitle = document.createElement('h1');
+                mainTitle.className = 'text-white intro-title font-extrabold';
+                mainTitle.textContent = card.title;
+                mainTitleBox.appendChild(mainTitle);
+
+                // 2. المقدمة البسيطة/نص الشكر (مستطيل أبيض)
+                const bodyBox = document.createElement('div');
+                bodyBox.className = 'bg-white rounded-15 px-6 py-6 w-full text-center shadow-lg';
+                
+                const body = document.createElement('p');
+                body.className = 'text-black text-xl leading-relaxed px-4';
+                body.textContent = card.body;
+                bodyBox.appendChild(body);
+                
+                // تجميع العناصر
+                contentContainer.appendChild(mainTitleBox);
+                contentContainer.appendChild(bodyBox);
+
+                 // إضافة توقيع في شريحة الشكر
+                if (card.footer) {
+                    const footer = document.createElement('p');
+                    footer.className = 'text-black text-xl font-bold mt-10 pt-4 border-t border-black border-dashed w-full';
+                    footer.textContent = card.footer;
+                    contentContainer.appendChild(footer);
+                }
+
+            } else {
+                // --- تنسيق البطاقات الإرشادية العادية (1-10) ---
+                
+                // 1. عنوان البطاقة (مستطيل أبيض)
+                const titleRect = document.createElement('div');
+                titleRect.className = 'bg-white rounded-15 px-6 py-3 w-11/12 text-center shadow-xl';
+                titleRect.style.marginTop = '-80px'; 
+                titleRect.style.position = 'absolute';
+                titleRect.style.top = '0';
+                titleRect.style.zIndex = '10';
+
+                const title = document.createElement('h2');
+                title.className = 'text-black font-extrabold text-[28px] leading-tight';
+                title.textContent = card.title;
+                titleRect.appendChild(title);
+                
+                // 2. النص داخل البطاقة (في مستطيل أسود كبير في المنتصف)
+                contentContainer.classList.add('bg-black', 'text-white', 'p-10', 'justify-center', 'pt-16'); 
+                
+                const body = document.createElement('p');
+                body.className = 'text-white text-[22px] leading-relaxed px-4';
+                body.textContent = card.body;
+
+                // تجميع العناصر
+                cardElement.appendChild(titleRect); // وضع العنوان خارج حاوية المحتوى (في cardElement مباشرة)
+                
+                contentContainer.appendChild(body); // وضع النص داخل المستطيل الأسود
+            }
+
+            cardElement.appendChild(contentContainer);
+            return cardElement;
+        };
+
+        // دالة لعرض البطاقة الحالية (تم تبسيطها)
+        const showCard = (index) => {
+            const slides = document.querySelectorAll('.card-slide');
+            
+            // 1. إزالة كلاس 'active' من جميع البطاقات
+            slides.forEach((slide) => {
+                slide.classList.remove('active');
+                slide.style.transform = ''; // إزالة أي تحويلات سابقة
+            });
+
+            // 2. إضافة كلاس 'active' للبطاقة الجديدة
+            const newActiveCard = slides[index];
+            if (newActiveCard) {
+                newActiveCard.classList.add('active');
+            }
+
+            currentIndex = index;
+            updateControls();
+            updateContainerHeight();
+        };
+
+        // دالة لتحديث ظهور عناصر التحكم (الأزرار والعداد)
+        const updateControls = () => {
+            
+            // 1. إدارة زر البدء (يظهر فقط في المقدمة)
+            if (currentIndex === 0) {
+                 startBtn.classList.remove('controls-hidden');
+                 startBtn.classList.add('controls-visible');
+            } else {
+                 startBtn.classList.remove('controls-visible');
+                 startBtn.classList.add('controls-hidden');
+            }
+
+            // 2. إدارة الأزرار (السابق/التالي) - تظهر من البطاقة 1 وحتى شريحة الشكر
+            const isSliderVisible = (currentIndex >= 1); // من Index 1 إلى Index 11
+            
+            if (isSliderVisible) {
+                sliderControls.classList.remove('controls-hidden');
+                sliderControls.classList.add('controls-visible');
+                updateButtons();
+            } else { // فقط في حالة المقدمة (index 0)
+                sliderControls.classList.remove('controls-visible');
+                sliderControls.classList.add('controls-hidden');
+            }
+
+            // 3. إدارة عداد البطاقات - يظهر فقط للبطاقات الإرشادية (1-10)
+            const isCardIndexDisplayed = (currentIndex >= 1 && currentIndex < cardsData.length - 1); // من Index 1 إلى Index 10
+            
+            if (isCardIndexDisplayed) {
+                indexDisplay.classList.remove('controls-hidden');
+                indexDisplay.classList.add('controls-visible');
+                updateIndexDisplay();
+            } else { // المقدمة (0) والشكر (11)
+                indexDisplay.classList.remove('controls-visible');
+                indexDisplay.classList.add('controls-hidden');
+            }
+        };
+
+        // دالة لحساب وتحديث ارتفاع حاوية البطاقات
+        const updateContainerHeight = () => {
+            // ننتظر قليلاً لضمان أن البطاقة النشطة قد اكتمل تحميلها وظهورها
+            requestAnimationFrame(() => {
+                const activeCard = document.querySelector('.card-slide.active .card-content');
+                if (activeCard) {
+                    // إضافة 120px لاستيعاب العنوان العلوي والهامش
+                    container.style.height = `${activeCard.offsetHeight + 120}px`; 
+                }
+            });
+        };
+        
+        // تحديث حالة أزرار السابق والتالي
+        const updateButtons = () => {
+            // زر السابق معطل فقط إذا كنا في الشريحة الأولى (المقدمة، index 0)
+            prevBtn.disabled = currentIndex === 0; 
+            
+            // زر التالي معطل فقط إذا كنا في الشريحة الأخيرة (شريحة الشكر، index 11)
+            nextBtn.disabled = currentIndex === cardsData.length - 1;
+        };
+        
+        // دالة لتحديث عداد البطاقات
+        const updateIndexDisplay = () => {
+             // عرض رقم البطاقة الحالي (1-10) من العدد الكلي للبطاقات الإرشادية (10)
+             // البطاقات الإرشادية تبدأ من index 1، لذا نستخدم currentIndex
+             const cardNum = currentIndex; 
+             indexDisplay.textContent = `البطاقة ${cardNum} من ${communicationCards.length}`;
+        };
+
+        // إضافة البطاقات إلى الحاوية
+        cardsData.forEach((card, index) => {
+            container.appendChild(createCardElement(card, index));
+        });
+
+        // أحداث الأزرار
+        prevBtn.addEventListener('click', () => {
+            // السماح بالرجوع إلى الشريحة 0
+            if (currentIndex > 0) {
+                showCard(currentIndex - 1);
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            // الانتقال حتى شريحة الشكر
+            if (currentIndex < cardsData.length - 1) { 
+                showCard(currentIndex + 1);
+            }
+        });
+        
+        // حدث زر البدء
+        startBtn.addEventListener('click', () => {
+            // الانتقال إلى البطاقة الإرشادية الأولى (index 1)
+            showCard(1); 
+        });
+
+        // عرض البطاقة الأولى عند التحميل وتحديث الأزرار والعداد
+        window.onload = () => {
+            showCard(0);
+            // تعديل ارتفاع الحاوية عند تغيير حجم الشاشة
+            window.addEventListener('resize', updateContainerHeight);
+        };
+        
+    </script>
+</body>
+</html>

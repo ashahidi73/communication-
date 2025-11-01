@@ -27,9 +27,7 @@
             border-radius: 15px;
         }
         
-        /* ************************************************* */
         /* التعديل الرئيسي: الانتقال إلى التلاشي المعتمد على Opacity و Pointer-Events */
-        /* ************************************************* */
         .card-slide {
             /* البطاقات متراكبة ومخفية وغير قابلة للنقر بشكل افتراضي */
             position: absolute;
@@ -53,8 +51,6 @@
             pointer-events: auto; /* تسمح بالتفاعل والنقر */
             z-index: 10; /* ضمان ظهورها فوق البطاقات الأخرى */
         }
-        /* ************************************************* */
-
 
         /* تصميم زر السلايدر (أبيض على أسود عند التحويم) */
         .slider-button {
@@ -95,10 +91,8 @@
 
         /* ضبط مرونة ارتفاع حاوية البطاقة */
         #cards-container {
-            /* إزالة الـ min-height والسماح للـ JS بتحديد الارتفاع بدقة بناءً على البطاقة النشطة */
             height: auto;
-            position: relative; /* ضروري لعمل position: absolute للبطاقات */
-            /* الحد الأدنى للارتفاع لضمان عدم اهتزاز الصفحة أثناء التحولات */
+            position: relative;
             min-height: 450px; 
         }
 
@@ -183,11 +177,12 @@
             body: "مجموعة من 10 بطاقات إرشادية حول أهمية وأفضل ممارسات التواصل الداخلي في بيئة العمل لتعزيز الإنتاجية والولاء.",
             buttonText: 'لقراءة البطاقات'
         };
+        // تم تعديل النص في شريحة الشكر ليناسب الطلب
         const thankYouCard = {
             id: 'thanks',
             title: "شكراً لوقتك في القراءة",
             isSpecial: true,
-            body: "نتمنى أن تكون هذه البطاقات مصدر إلهام لتعزيز التواصل في شركتكم.",
+            body: "نتمنى أن تكون هذه البطاقات مصدر إلهام لتعزيز التواصل في شركتنا.",
             footer: 'فريق التواصل الداخلي'
         };
 
@@ -220,7 +215,6 @@
             const isSpecial = card.isSpecial;
             
             const cardElement = document.createElement('div');
-            // تم الاعتماد على CSS لتعيين opacity و pointer-events
             cardElement.className = `card-slide w-full mx-auto transition-opacity duration-500 ease-in-out flex flex-col items-center justify-center text-center ${index === 0 ? 'active' : ''}`;
             
             // حاوية المحتوى الرئيسية التي تحمل اللون والتأثير
@@ -269,7 +263,9 @@
                 // 1. عنوان البطاقة (مستطيل أبيض)
                 const titleRect = document.createElement('div');
                 titleRect.className = 'bg-white rounded-15 px-6 py-3 w-11/12 text-center shadow-xl';
-                titleRect.style.marginTop = '-80px'; 
+                
+                // التعديل: زيادة الهامش العلوي لترك مسافة إضافية بين الشعار والعنوان
+                titleRect.style.marginTop = '-50px'; 
                 titleRect.style.position = 'absolute';
                 titleRect.style.top = '0';
                 titleRect.style.zIndex = '10';
@@ -280,16 +276,16 @@
                 titleRect.appendChild(title);
                 
                 // 2. النص داخل البطاقة (في مستطيل أسود كبير في المنتصف)
-                contentContainer.classList.add('bg-black', 'text-white', 'p-10', 'justify-center', 'pt-16'); 
+                // تم تعديل p-10 إلى p-8 وتقليل pt-16 قليلاً
+                contentContainer.classList.add('bg-black', 'text-white', 'p-8', 'justify-center', 'pt-14'); 
                 
                 const body = document.createElement('p');
                 body.className = 'text-white text-[22px] leading-relaxed px-4';
                 body.textContent = card.body;
 
                 // تجميع العناصر
-                cardElement.appendChild(titleRect); // وضع العنوان خارج حاوية المحتوى (في cardElement مباشرة)
-                
-                contentContainer.appendChild(body); // وضع النص داخل المستطيل الأسود
+                cardElement.appendChild(titleRect); 
+                contentContainer.appendChild(body); 
             }
 
             cardElement.appendChild(contentContainer);
@@ -360,8 +356,8 @@
             requestAnimationFrame(() => {
                 const activeCard = document.querySelector('.card-slide.active .card-content');
                 if (activeCard) {
-                    // إضافة 120px لاستيعاب العنوان العلوي والهامش
-                    container.style.height = `${activeCard.offsetHeight + 120}px`; 
+                    // إضافة 120px لاستيعاب العنوان العلوي والهامش (تم تخفيضه قليلاً بعد تعديل marginTop)
+                    container.style.height = `${activeCard.offsetHeight + 100}px`; 
                 }
             });
         };
@@ -377,7 +373,6 @@
         
         // دالة لتحديث عداد البطاقات
         const updateIndexDisplay = () => {
-             // عرض رقم البطاقة الحالي (1-10) من العدد الكلي للبطاقات الإرشادية (10)
              // البطاقات الإرشادية تبدأ من index 1، لذا نستخدم currentIndex
              const cardNum = currentIndex; 
              indexDisplay.textContent = `البطاقة ${cardNum} من ${communicationCards.length}`;
